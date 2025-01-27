@@ -1,9 +1,10 @@
 Package: tergo
 Title: Style Your Code Fast
-Version: 0.1.5.9001
+Version: 0.1.5.9003
 Authors@R:
     c(
       person("Konrad", "Pagacz", , "konrad.pagacz@gmail.com", role = c("aut", "cre")),
+      person("Maciej", "Nasinski", , "nasinski.maciej@gmail.com", role = c("ctb")),
       person(given = "The authors of the dependency Rust crates",
         role = c("ctb"), comment = "see inst/AUTHORS file for details")
     )
@@ -17,10 +18,11 @@ SystemRequirements: Cargo (Rust's package manager), rustc
 NeedsCompilation: yes
 Biarch: true
 Depends:
-    R (>= 4.2)
+    R (>= 4.1.0)
 Suggests:
     rextendr (== 0.3.1),
     roxygen2,
+    rstudioapi (>= 0.7),
     devtools,
     pkgdown,
     desc
