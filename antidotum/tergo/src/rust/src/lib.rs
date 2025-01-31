@@ -72,15 +72,33 @@ fn format_code(source_code: &str, configuration: extendr_api::List) -> extendr_a
             .unwrap_or(default_config.insert_newline_in_quote_call.0),
     );
 
-
-    match tergo_lib::tergo_format(source_code, Some(&config)) {
-        Ok(formatted_code) => {
-            list!("success", formatted_code)
+    // Check for special inline comments to skip formatting
+    let mut skip_formatting = false;
+    let mut formatted_code = String::new();
+    for line in source_code.lines() {
+        if line.trim().starts_with("# tergo-off") {
+            skip_formatting = true;
+        } else if line.trim().starts_with("# tergo-on") {
+            skip_formatting = false;
         }
-        Err(error) => {
-            list!("error", error)
+
+        if skip_formatting {
+            formatted_code.push_str(line);
+            formatted_code.push('\n');
+        } else {
+            match tergo_lib::tergo_format(line, Some(&config)) {
+                Ok(formatted_line) => {
+                    formatted_code.push_str(&formatted_line);
+                    formatted_code.push('\n');
+                }
+                Err(error) => {
+                    return list!("error", error);
+                }
+            }
         }
     }
+
+    list!("success", formatted_code)
 }
 
 /// Parse the config file and return the configuration

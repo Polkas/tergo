@@ -50,12 +50,35 @@ fn format_file_in_place(path: &Path, config: &Config) -> Result<(), Error> {
         trace!("Error when reading the file {e}");
         ReadFileToString
     })?;
-    let formatted = tergo_format(&content, Some(config)).map_err(|e| {
-        trace!("Error when formatting: {e}");
-        Formatting
-    })?;
-    trace!("Formatted code:\n:{}", formatted);
-    std::fs::write(path, formatted).map_err(|e| {
+
+    // Check for special inline comments to skip formatting
+    let mut skip_formatting = false;
+    let mut formatted_code = String::new();
+    for line in content.lines() {
+        if line.trim().starts_with("# tergo-off") {
+            skip_formatting = true;
+        } else if line.trim().starts_with("# tergo-on") {
+            skip_formatting = false;
+        }
+
+        if skip_formatting {
+            formatted_code.push_str(line);
+            formatted_code.push('\n');
+        } else {
+            match tergo_format(line, Some(config)) {
+                Ok(formatted_line) => {
+                    formatted_code.push_str(&formatted_line);
+                    formatted_code.push('\n');
+                }
+                Err(error) => {
+                    return Err(Formatting);
+                }
+            }
+        }
+    }
+
+    trace!("Formatted code:\n:{}", formatted_code);
+    std::fs::write(path, formatted_code).map_err(|e| {
         trace!("Error writing to file {e}");
         WriteToFile
     })?;
