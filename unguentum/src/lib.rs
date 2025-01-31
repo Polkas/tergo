@@ -30,35 +30,53 @@ pub fn format_code<T: config::FormattingConfig>(
         hook(&mut expression);
     }
 
-    // Doc stage
-    let mut doc_ref = 0usize;
-    let mut docs: VecDeque<_> = VecDeque::from([(
-        0i32,
-        Mode::Flat,
-        expression.to_docs(formatting_config, &mut doc_ref),
-    )]);
-    trace!("Config: {}", formatting_config);
-    trace!("Docs: {}", DocBuffer(&docs));
+    // Check for special inline comments to skip formatting
+    let mut skip_formatting = false;
+    let mut formatted_code = String::new();
+    for line in expression.to_string().lines() {
+        if line.trim().starts_with("# tergo-off") {
+            skip_formatting = true;
+        } else if line.trim().starts_with("# tergo-on") {
+            skip_formatting = false;
+        }
 
-    // Simple docs stage
-    use std::collections::HashSet;
-    let mut broken_docs = HashSet::default();
-    let simple_doc = Rc::new(format_to_sdoc(
-        0,
-        &mut docs,
-        formatting_config,
-        &mut broken_docs,
-    ));
-    trace!("Simple docs: {:?}", simple_doc);
+        if skip_formatting {
+            formatted_code.push_str(line);
+            formatted_code.push('\n');
+        } else {
+            // Doc stage
+            let mut doc_ref = 0usize;
+            let mut docs: VecDeque<_> = VecDeque::from([(
+                0i32,
+                Mode::Flat,
+                expression.to_docs(formatting_config, &mut doc_ref),
+            )]);
+            trace!("Config: {}", formatting_config);
+            trace!("Docs: {}", DocBuffer(&docs));
 
-    // Printing to string
-    let mut formatted = simple_doc_to_string(simple_doc);
+            // Simple docs stage
+            use std::collections::HashSet;
+            let mut broken_docs = HashSet::default();
+            let simple_doc = Rc::new(format_to_sdoc(
+                0,
+                &mut docs,
+                formatting_config,
+                &mut broken_docs,
+            ));
+            trace!("Simple docs: {:?}", simple_doc);
 
-    // Post-format hooks
-    let post_format_hooks = vec![trim_line_endings, trim_trailing_line];
-    for hook in post_format_hooks {
-        formatted = hook(formatted);
+            // Printing to string
+            let mut formatted = simple_doc_to_string(simple_doc);
+
+            // Post-format hooks
+            let post_format_hooks = vec![trim_line_endings, trim_trailing_line];
+            for hook in post_format_hooks {
+                formatted = hook(formatted);
+            }
+
+            formatted_code.push_str(&formatted);
+        }
     }
 
-    formatted
+    formatted_code
 }
